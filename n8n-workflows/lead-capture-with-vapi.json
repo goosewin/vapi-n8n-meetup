@@ -1,0 +1,219 @@
+{
+    "name": "Lead Capture WITH Vapi Call - FIXED",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "lead-capture",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "lead-capture"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "lead_id",
+                            "name": "lead_id",
+                            "value": "={{ $now.toUnixInteger() }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "name",
+                            "name": "name",
+                            "value": "={{ $json.body.name }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "email",
+                            "name": "email",
+                            "value": "={{ $json.body.email }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "phone",
+                            "name": "phone",
+                            "value": "={{ $json.body.phone }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "company",
+                            "name": "company",
+                            "value": "={{ $json.body.company }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "timestamp",
+                            "name": "timestamp",
+                            "value": "={{ $json.body.timestamp }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "set-lead-data",
+            "name": "Set Lead Data",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.vapi.ai/call",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer 35fa19b1-8078-43c4-9f29-0093a3e223fd"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"phoneNumberId\": \"42c617f0-9427-45f7-9007-6e36a9f21dbc\",\n  \"name\": \"Lead Qualification Call\",\n  \"assistant\": {\n    \"model\": {\n      \"provider\": \"openai\",\n      \"model\": \"gpt-4\",\n      \"temperature\": 0.7,\n      \"messages\": [\n        {\n          \"role\": \"system\",\n          \"content\": \"You are a friendly sales assistant calling {{ $json.name }} from {{ $json.company }}. You just called them because they requested a demo through the website. Your goal is to:\\n\\n1. Confirm they requested the demo and have a minute to chat\\n2. Ask about their company size (small startup, mid-size company, or enterprise)\\n3. Understand their biggest challenge or problem they're trying to solve\\n4. Gauge their timeline for implementing a solution (urgent, next quarter, or just exploring)\\n5. Ask if they'd like to schedule a 15-minute sales call with a specialist\\n\\nIMPORTANT:\\n- Be conversational and natural, not robotic\\n- Keep the call brief (2-3 minutes max)\\n- If they're busy, offer to call back later\\n- Listen actively and ask follow-up questions\\n- Don't be pushy about the sales call\\n- End politely and thank them for their time\"\n        }\n      ]\n    },\n    \"voice\": {\n      \"provider\": \"11labs\",\n      \"voiceId\": \"21m00Tcm4TlvDq8ikWAM\"\n    },\n    \"firstMessage\": \"Hi {{ $json.name }}, this is Sarah calling from Vapi AI. You just requested a demo through our website. Do you have a quick minute to chat about your needs?\",\n    \"endCallPhrases\": [\n      \"goodbye\",\n      \"thank you bye\",\n      \"have a great day\"\n    ],\n    \"recordingEnabled\": true,\n    \"serverUrl\": \"https://dan-vapi.app.n8n.cloud/webhook/vapi-callback\"\n  },\n  \"customer\": {\n    \"number\": \"{{ $json.phone }}\",\n    \"name\": \"{{ $json.name }}\"\n  },\n  \"metadata\": {\n    \"lead_id\": \"{{ $json.lead_id }}\",\n    \"email\": \"{{ $json.email }}\",\n    \"company\": \"{{ $json.company }}\"\n  }\n}",
+                "options": {}
+            },
+            "id": "vapi-call-api",
+            "name": "Vapi - Create Call",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "success",
+                            "name": "success",
+                            "value": "true",
+                            "type": "boolean"
+                        },
+                        {
+                            "id": "message",
+                            "name": "message",
+                            "value": "Lead captured. AI call initiated to {{ $('Set Lead Data').item.json.phone }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "call_id",
+                            "name": "call_id",
+                            "value": "={{ $json.id }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "lead_id",
+                            "name": "lead_id",
+                            "value": "={{ $('Set Lead Data').item.json.lead_id }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "phone_number",
+                            "name": "phone_number",
+                            "value": "+15304835188",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "format-response",
+            "name": "Format Response",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json }}",
+                "options": {}
+            },
+            "id": "webhook-response",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1050,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Set Lead Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Lead Data": {
+            "main": [
+                [
+                    {
+                        "node": "Vapi - Create Call",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Vapi - Create Call": {
+            "main": [
+                [
+                    {
+                        "node": "Format Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Response": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 0,
+    "updatedAt": "2025-10-14T00:00:00.000Z",
+    "versionId": "1"
+}
